@@ -11,4 +11,6 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = "14.0"
   s.source   = { :git => "https://github.com/PuuuTao/EWMIMQTTSDK.git", :tag => "1.0.0"}
   s.source_files = "Sources/EWMIMQTTSDK/**/*.{h,m,swift}"
+  
+  s.dependency "CocoaMQTT"
 end
