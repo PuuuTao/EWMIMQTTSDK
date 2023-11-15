@@ -13,7 +13,7 @@ import CocoaMQTT
 public class EWMicroInverterMQTTManager: NSObject {
     
     //单例
-    static let shared = EWMicroInverterMQTTManager()
+    public static let shared = EWMicroInverterMQTTManager()
     
     //服务器地址
     ///国内服务器
