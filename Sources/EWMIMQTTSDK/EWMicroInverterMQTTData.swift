@@ -9,9 +9,13 @@ import Foundation
 
 extension EWMicroInverterMQTTManager {
     
-    ///连接成功、断开连接，连接失败
+    ///连接成功，连接失败
     public func ewMIMQTTConnectStatus(completion: EWMQTTConnectCompletion?){
         ewMQTTConnectCompletion = completion
+    }
+    
+    public func ewMIMQTTDisconnect(completion: EWMQTTDisconnectCompletion?){
+        ewMQTTDisconnectCompletion = completion
     }
     
     ///订阅结果

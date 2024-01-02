@@ -170,7 +170,7 @@ public struct OTADataModel: Codable {
     ///固件名称
     let firmwareName: String
     ///固件版本
-    let version: Double
+    let version: String
     ///文件地址
     var filePath: String
     ///原文件名
@@ -181,4 +181,15 @@ public struct OTADataModel: Codable {
     let md5: String
     ///更新日志
     let remark: String
+}
+
+public struct MIMQTTOTADataModel: Codable {
+    ///固件版本类型(1网络模块 2主控模块 3功率模块 4UI模块)
+    let type: Int
+    ///版本号
+    let ver: Double
+    ///固件下载地址
+    let url: String
+    ///文件md5编码
+    let md5: String
 }

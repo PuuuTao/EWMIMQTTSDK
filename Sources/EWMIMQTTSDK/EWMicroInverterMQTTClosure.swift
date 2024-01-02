@@ -7,8 +7,11 @@
 
 import Foundation
 
-///连接回调（连接成功，连接失败，断开连接）
+///连接回调（连接成功，连接失败）
 public typealias EWMQTTConnectCompletion = (Bool, EWMIMQTTError?) -> Void
+
+///断开连接
+public typealias EWMQTTDisconnectCompletion = (Bool) -> Void
 
 ///MQTT订阅回调
 public typealias EWMQTTSubscribeCompletion = (EWMIMQTTSubscribe, Bool, EWMIMQTTError?) -> Void

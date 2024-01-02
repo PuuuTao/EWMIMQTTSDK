@@ -30,6 +30,8 @@ public class EWMicroInverterMQTTManager: NSObject {
     //闭包
     ///连接回调（成功，失败，断开）
     var ewMQTTConnectCompletion: EWMQTTConnectCompletion?
+    ///断开连接
+    var ewMQTTDisconnectCompletion: EWMQTTDisconnectCompletion?
     ///订阅回调
     var ewMQTTSubscribeCompletion: EWMQTTSubscribeCompletion?
     ///全部订阅回调
@@ -101,7 +103,7 @@ public class EWMicroInverterMQTTManager: NSObject {
     ///   - otaModel: OTA升级信息
     ///   - productCode: 机型码
     ///   - deviceNum: 设备编号
-    public func ewMIMQTTPublishOTAInfo(otaModel: OTADataModel, productCode: String, deviceNum: String){
+    public func ewMIMQTTPublishOTAInfo(otaModel: MIMQTTOTADataModel, productCode: String, deviceNum: String){
         if mqtt != nil {
             do {
                 let encoder = JSONEncoder()
@@ -334,7 +336,7 @@ public class EWMicroInverterMQTTManager: NSObject {
                 
                 completion?(responseData.data, nil)
                 // 处理解析后的数据
-                print("获取数据: \(responseData)")
+                print("获取数据: \(urlString)\n\(responseData)")
                 
             } catch {
                 completion?([], .jsonDecodingError)
@@ -518,7 +520,7 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
     //断开连接
     public func mqttDidDisconnect(_ mqtt: CocoaMQTT, withError err: Error?) {
         //self.delegate?.ewMIMQTTDisconnected()
-        ewMQTTConnectCompletion?(false, nil)
+        ewMQTTDisconnectCompletion?(false)
     }
 }
 
