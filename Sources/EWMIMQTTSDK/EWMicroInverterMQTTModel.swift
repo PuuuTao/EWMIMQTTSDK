@@ -18,15 +18,29 @@ public struct MQTTBoardInfoModel: Codable {
 }
 
 ///设备信息
-public struct MQTTDeviceInfoModel: Codable {
+public struct MQTTDeviceInfoModel{
     ///网络模块固件版本
     let netFirmVer: Double
     ///主控模块固件版本
     let appFirmVer: Double
     ///wifi名称
     let wifiSsid: String
-    ///wifi是否可用
-    let wifiIsNormal: Int
+    ///是否锁定（0：是， 1：否）
+    let isLock: Int
+    ///设备功率
+    var power: Int?
+    ///错误码
+    let errCode: Int?
+}
+
+///设备信息
+public struct MQTTDeviceOldInfoModel: Codable {
+    ///网络模块固件版本
+    let netFirmVer: Double
+    ///主控模块固件版本
+    let appFirmVer: Double
+    ///wifi名称
+    let wifiSsid: String
     ///是否锁定（0：是， 1：否）
     let isLock: Int
     ///错误码

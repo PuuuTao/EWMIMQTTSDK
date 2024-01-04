@@ -39,12 +39,12 @@ extension EWMicroInverterMQTTManager {
     }
     
     ///PUB04 -- OTA升级进度
-    public func ewMIMQTTOTAProgress(completion: EWMQTTDeviceOTAProgressCompletion?){
+    private func ewMIMQTTOTAProgress(completion: EWMQTTDeviceOTAProgressCompletion?){
         ewMQTTDeviceOTAProgressCompletion = completion
     }
     
     ///PUB05 -- OTA升级结果
-    public func ewMIMQTTOTAResult(completion: EWMQTTDeviceOTAResultCompletion?){
+    private func ewMIMQTTOTAResult(completion: EWMQTTDeviceOTAResultCompletion?){
         ewMQTTDeviceOTAResultCompletion = completion
     }
     

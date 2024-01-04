@@ -24,9 +24,6 @@ public class EWMicroInverterMQTTManager: NSObject {
     ///MQTT3.1.1服务
     private var mqtt: CocoaMQTT?
     
-    ///代理
-    //public var delegate: EWMIMQTTDelegate?
-    
     //闭包
     ///连接回调（成功，失败，断开）
     var ewMQTTConnectCompletion: EWMQTTConnectCompletion?
@@ -103,7 +100,7 @@ public class EWMicroInverterMQTTManager: NSObject {
     ///   - otaModel: OTA升级信息
     ///   - productCode: 机型码
     ///   - deviceNum: 设备编号
-    public func ewMIMQTTPublishOTAInfo(otaModel: MIMQTTOTADataModel, productCode: String, deviceNum: String){
+    private func ewMIMQTTPublishOTAInfo(otaModel: MIMQTTOTADataModel, productCode: String, deviceNum: String){
         if mqtt != nil {
             do {
                 let encoder = JSONEncoder()
@@ -277,7 +274,7 @@ public class EWMicroInverterMQTTManager: NSObject {
     }
     
     ///获取OTA相关（需要替换url，para），并添加返回值
-    public func ewMIMQTTGetOTAInfo(sn: String, completion: EWMQTTOTADataCompletion?){
+    private func ewMIMQTTGetOTAInfo(sn: String, completion: EWMQTTOTADataCompletion?){
         let officalURL = "https://op.easycharging-tech.com/prod-api"
         let testURL = "http://10.168.9.29:1028/stage-api"
         
@@ -362,25 +359,18 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
         
         switch ack {
         case .accept:
-            //self.delegate?.ewMIMQTTConnected()
             ewMQTTConnectCompletion?(true, nil)
         case .unacceptableProtocolVersion:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.unacceptableProtocolVersion)
             ewMQTTConnectCompletion?(false, .unacceptableProtocolVersion)
         case .identifierRejected:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.identifierRejected)
             ewMQTTConnectCompletion?(false, .identifierRejected)
         case .serverUnavailable:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.serverUnavailable)
             ewMQTTConnectCompletion?(false, .serverUnavailable)
         case .badUsernameOrPassword:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.badUsernameOrPassword)
             ewMQTTConnectCompletion?(false, .badUsernameOrPassword)
         case .notAuthorized:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.notAuthorized)
             ewMQTTConnectCompletion?(false, .notAuthorized)
         case .reserved:
-            //self.delegate?.ewMIMQTTConnectionFail(error: EWMIMQTTError.reserved)
             ewMQTTConnectCompletion?(false, .reserved)
         }
         
@@ -406,7 +396,7 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
         if message.topic.contains(EWMIMQTTSubscribe.PUB01.rawValue) {
             print("当前topic为获取设备信息")
             if message.string != nil{
-                parseDevicInfoData(infoJSONStr: message.string!.trimmingCharacters(in: CharacterSet.whitespaces))
+                parseDevicInfoData(infoJSONStr: message.string!.trimmingCharacters(in: CharacterSet.whitespaces), topic: message.topic)
             }
         } else if message.topic.contains(EWMIMQTTSubscribe.PUB02.rawValue) {
             print("当前topic为获取设备数据")
@@ -417,7 +407,6 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
             print("当前topic为获取设备离线")
             if message.string == "offline" {
                 //设备离线
-                //self.delegate?.ewMIMQTTDeviceOffline(offline: true)
                 ewMQTTDeviceOfflineCompletion?(true)
             }
         } else if message.topic.contains(EWMIMQTTSubscribe.PUB04.rawValue) {
@@ -455,7 +444,6 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
         var successArr: [EWMIMQTTSubscribe] = []
         if failed.isEmpty{
             //订阅成功
-            //self.delegate?.ewMIMQTTSubscribeResult(result: true)
             let res = success.allKeys.first as! String
             if res.contains(EWMIMQTTSubscribe.PUB01.rawValue) {
                 ewMQTTSubscribeCompletion?(.PUB01, true, nil)
@@ -497,7 +485,6 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
             }
             ewMQTTSubscribeAllCompletion?(successArr)
         } else {
-            //self.delegate?.ewMIMQTTSubscribeResult(result: false)
             if failed.first!.contains(EWMIMQTTSubscribe.PUB01.rawValue) {
                 ewMQTTSubscribeCompletion?(.PUB01, false, .subscribeFailed)
             }
@@ -519,7 +506,6 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
 
     //断开连接
     public func mqttDidDisconnect(_ mqtt: CocoaMQTT, withError err: Error?) {
-        //self.delegate?.ewMIMQTTDisconnected()
         ewMQTTDisconnectCompletion?(false)
     }
 }
@@ -528,17 +514,51 @@ extension EWMicroInverterMQTTManager: CocoaMQTTDelegate{
 extension EWMicroInverterMQTTManager{
     
     ///PUB01 -- 设备信息数据解析
-    private func parseDevicInfoData(infoJSONStr: String){
+    private func parseDevicInfoData(infoJSONStr: String, topic: String){
 
         if let jsonData = infoJSONStr.data(using: .utf8) {
             do {
-                let device = try JSONDecoder().decode(MQTTDeviceInfoModel.self, from: jsonData)
-                //self.delegate?.ewMIMQTTDeviceInfo(info: device, error: nil)
-                ewMQTTDeviceInfoCompletion?(device, nil)
+                let device = try JSONDecoder().decode(MQTTDeviceOldInfoModel.self, from: jsonData)
+                let components = topic.components(separatedBy: "/")
+                let power = getPowerForProductID(productID: components[1])
+                let model = MQTTDeviceInfoModel(
+                    netFirmVer: device.netFirmVer,
+                    appFirmVer: device.appFirmVer,
+                    wifiSsid: device.wifiSsid,
+                    isLock: device.isLock,
+                    power: power,
+                    errCode: device.errCode)
+                ewMQTTDeviceInfoCompletion?(model, nil)
             } catch {
-                //self.delegate?.ewMIMQTTDeviceInfo(info: nil, error: EWMIMQTTError.parseDataFailed)
                 ewMQTTDeviceInfoCompletion?(nil, .parseDataFailed)
             }
+        }
+    }
+    
+    private func getPowerForProductID(productID: String) -> Int?{
+        // 获取第4和第5位的字符
+        if productID.count >= 5 {
+            let index4 = productID.index(productID.startIndex, offsetBy: 4)
+            let index5 = productID.index(productID.startIndex, offsetBy: 5)
+            
+            let digit4 = productID[index4]
+            let digit5 = productID[index5]
+            
+            // 将第4和第5位的字符转换成整数
+            if let number4 = Int(String(digit4)),
+               let number5 = Int(String(digit5)) {
+                
+                // 计算数据
+                let result = number4 * 10 + number5
+                print("计算结果：\(result)")
+                return result * 100
+            } else {
+                print("无法转换为整数")
+                return nil
+            }
+        } else {
+            print("字符串长度不足")
+            return nil
         }
     }
     
@@ -547,10 +567,8 @@ extension EWMicroInverterMQTTManager{
         if let jsonData = dataJSONStr.data(using: .utf8) {
             do {
                 let dataArr = try JSONDecoder().decode([MQTTDataModel].self, from: jsonData)
-                //self.delegate?.ewMIMQTTDeviceData(data: dataArr, error: nil)
                 ewMQTTDeviceDataCompletion?(dataArr, nil)
             } catch {
-                //self.delegate?.ewMIMQTTDeviceData(data: [], error: EWMIMQTTError.parseDataFailed)
                 ewMQTTDeviceDataCompletion?([], .jsonDecodingError)
             }
         }
@@ -561,10 +579,8 @@ extension EWMicroInverterMQTTManager{
         if let jsonData = progressJSONStr.data(using: .utf8) {
             do {
                 let progress = try JSONDecoder().decode(MQTTOTAProgressModel.self, from: jsonData)
-                //self.delegate?.ewMIMQTTOTAProgress(progress: progress, error: nil)
                 ewMQTTDeviceOTAProgressCompletion?(progress, nil)
             } catch {
-                //self.delegate?.ewMIMQTTOTAProgress(progress: nil, error: EWMIMQTTError.parseDataFailed)
                 ewMQTTDeviceOTAProgressCompletion?(nil, .parseDataFailed)
             }
         }
@@ -575,10 +591,8 @@ extension EWMicroInverterMQTTManager{
         if let jsonData = resultJSONStr.data(using: .utf8) {
             do {
                 let result = try JSONDecoder().decode(MQTTOTAResultModel.self, from: jsonData)
-                //self.delegate?.ewMIMQTTOTAResult(result: result, error: nil)
                 ewMQTTDeviceOTAResultCompletion?(result, nil)
             } catch {
-                //self.delegate?.ewMIMQTTOTAResult(result: nil, error: EWMIMQTTError.parseDataFailed)
                 ewMQTTDeviceOTAResultCompletion?(nil, .parseDataFailed)
             }
         }
@@ -589,10 +603,8 @@ extension EWMicroInverterMQTTManager{
         if let jsonData = resultJSONStr.data(using: .utf8) {
             do {
                 let result = try JSONDecoder().decode(MQTTResetResultModel.self, from: jsonData)
-                //self.delegate?.ewMIMQTTResetResult(result: result, error: nil)
                 ewMQTTDeviceResetResultCompletion?(result, nil)
             } catch {
-                //self.delegate?.ewMIMQTTResetResult(result: nil, error: EWMIMQTTError.parseDataFailed)
                 ewMQTTDeviceResetResultCompletion?(nil, .parseDataFailed)
             }
         }
@@ -605,21 +617,17 @@ extension EWMicroInverterMQTTManager{
                 let result = try JSONDecoder().decode([MQTTFunctionResultModel].self, from: jsonData)
                 if result[0].id == "inverter-lock" {
                     //锁定
-                    //self.delegate?.ewMIMQTTLockResult(result: result, error: nil)
                     ewMQTTDeviceLockResultCompletion?(result, nil)
                 } else if result[0].id == "vn-restart" {
                     //重启
-                    //self.delegate?.ewMIMQTTRestartResult(result: result, error: nil)
                     ewMQTTDeviceRestartResultCompletion?(result, nil)
                 }
             } catch {
                 if resultJSONStr.contains("inverter-lock") {
                     //锁定数据解析失败
-                    //self.delegate?.ewMIMQTTLockResult(result: [], error: EWMIMQTTError.parseDataFailed)
                     ewMQTTDeviceLockResultCompletion?([], .parseDataFailed)
                 } else if resultJSONStr.contains("vn-restart") {
                     //重启数据解析失败
-                    //self.delegate?.ewMIMQTTRestartResult(result: [], error: EWMIMQTTError.parseDataFailed)
                     ewMQTTDeviceRestartResultCompletion?([], .parseDataFailed)
                 }
             }
@@ -633,21 +641,17 @@ extension EWMicroInverterMQTTManager{
                 let result = try JSONDecoder().decode([MQTTPropertyResultModel].self, from: jsonData)
                 if result[0].id == "vn-power" {
                     //功率修改
-                    //self.delegate?.ewMIMQTTPowerResult(result: result, error: nil)
                     ewMQTTDevicePowerResultCompletion?(result, nil)
                 } else if result[0].id == "vn-replace" {
                     //重置
-                    //self.delegate?.ewMIMQTTReplaceResult(result: result, error: nil)
                     ewMQTTDeviceReplaceResultCompletion?(result, nil)
                 }
             } catch {
                 if resultJSONStr.contains("vn-power") {
                     //功率修改数据解析失败
-                    //self.delegate?.ewMIMQTTPowerResult(result: [], error: EWMIMQTTError.parseDataFailed)
                     ewMQTTDevicePowerResultCompletion?([], .parseDataFailed)
                 } else if resultJSONStr.contains("vn-replace") {
                     //属性重置数据解析失败
-                    //self.delegate?.ewMIMQTTReplaceResult(result: [], error: EWMIMQTTError.parseDataFailed)
                     ewMQTTDeviceReplaceResultCompletion?([], .parseDataFailed)
                 }
             }
